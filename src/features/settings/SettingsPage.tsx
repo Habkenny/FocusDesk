@@ -11,16 +11,11 @@ export function SettingsPage() {
       <div className="panel-card settings-grid">
         <div>
           <h3>Appearance</h3>
-          <label className="field-label">Theme</label>
-          <div className="chip-row">
-            <span className="chip">Light</span>
-            <span className="chip">Dark</span>
-            <span className="chip">System</span>
-          </div>
+          <p>Choose Light, Dark, or System from the theme selector in the sidebar.</p>
         </div>
         <div>
           <h3>Data</h3>
-          <p>SQLite database is active and ready for local-first workflows.</p>
+          <p>Your local SQLite database initializes when the desktop app starts.</p>
         </div>
       </div>
     </section>
