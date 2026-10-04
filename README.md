@@ -26,4 +26,4 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 The SQLite database is created in Tauri's platform-specific application data directory as `focusdesk.db`. The Rust startup hook applies versioned migrations before the app window is created. Frontend features call application services and repositories; SQLite is accessed only through Tauri commands.
 
-The Inbox supports creating, listing, and completing tasks. Task writes are persisted before the UI is updated; failures are shown without presenting an unsaved change as successful.
+The Inbox supports creating, listing, editing, completing, and archiving tasks. Task priority, status, description, and due date are editable. Archive and completion can be undone. The Today view groups dated tasks into overdue, due today, scheduled, and completed sections. Task writes are persisted before the UI is updated; failures are surfaced without presenting an unsaved change as successful.

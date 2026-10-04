@@ -1,7 +1,10 @@
 mod commands;
 mod database;
 
-use commands::{complete_task, create_task, initialize_app_database, list_inbox_tasks};
+use commands::{
+    archive_task, complete_task, create_task, initialize_app_database, list_inbox_tasks,
+    list_today_tasks, restore_task, undo_task_completion, update_task,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -13,8 +16,13 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             list_inbox_tasks,
+            list_today_tasks,
             create_task,
-            complete_task
+            update_task,
+            complete_task,
+            undo_task_completion,
+            archive_task,
+            restore_task
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

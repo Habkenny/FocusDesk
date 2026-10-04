@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Home, Inbox, LayoutGrid, Settings } from "lucide-react";
+import { CalendarDays, Home, Inbox, LayoutGrid, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useThemeStore } from "../../lib/theme-store";
@@ -7,6 +7,7 @@ import { useThemeStore } from "../../lib/theme-store";
 const navigation = [
   { label: "Dashboard", to: "/dashboard", icon: Home },
   { label: "Inbox", to: "/inbox", icon: Inbox },
+  { label: "Today", to: "/today", icon: CalendarDays },
   { label: "Projects", to: "/projects", icon: LayoutGrid },
   { label: "Settings", to: "/settings", icon: Settings },
 ];

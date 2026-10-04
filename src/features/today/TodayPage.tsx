@@ -1,51 +1,73 @@
-import { Plus, RotateCw, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { format } from "date-fns";
+import { RotateCw, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { TaskForm } from "../tasks/TaskForm";
 import { TaskRow } from "../tasks/TaskRow";
 import { taskService } from "../../services/taskService";
 import type { Task, TaskInput } from "../../types/task";
 
 type UndoAction = { id: string; kind: "archive" | "complete"; message: string };
+type TaskSection = { title: string; tasks: Task[] };
 
 function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function InboxPage() {
+function groupTasks(tasks: Task[], today: string): TaskSection[] {
+  return [
+    {
+      title: "Overdue",
+      tasks: tasks.filter(
+        (task) => task.status !== "DONE" && task.dueAt !== null && task.dueAt < today,
+      ),
+    },
+    {
+      title: "Today",
+      tasks: tasks.filter((task) => task.status !== "DONE" && task.dueAt === today),
+    },
+    {
+      title: "Scheduled",
+      tasks: tasks.filter(
+        (task) => task.status !== "DONE" && task.dueAt !== null && task.dueAt > today,
+      ),
+    },
+    { title: "Completed", tasks: tasks.filter((task) => task.status === "DONE") },
+  ];
+}
+
+export function TodayPage() {
+  const today = format(new Date(), "yyyy-MM-dd");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
 
-  const loadTasks = useCallback(async () => {
+  async function loadTasks() {
     setIsLoading(true);
     setError(null);
     try {
-      setTasks(await taskService.listInbox());
+      setTasks(await taskService.listToday(today));
     } catch (loadError) {
       setError(
-        `Unable to load your inbox. Your saved data has not been changed. ${messageFromError(loadError)}`,
+        `Unable to load Today. Your saved data has not been changed. ${messageFromError(loadError)}`,
       );
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
     let isMounted = true;
     taskService
-      .listInbox()
+      .listToday(today)
       .then((loadedTasks) => {
         if (isMounted) setTasks(loadedTasks);
       })
       .catch((loadError: unknown) => {
         if (isMounted) {
           setError(
-            `Unable to load your inbox. Your saved data has not been changed. ${messageFromError(loadError)}`,
+            `Unable to load Today. Your saved data has not been changed. ${messageFromError(loadError)}`,
           );
         }
       })
@@ -56,37 +78,23 @@ export function InboxPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  async function handleCreate(input: TaskInput) {
-    setError(null);
-    const task = await taskService.create(input);
-    if (task.status === "INBOX") {
-      setTasks((currentTasks) => [task, ...currentTasks]);
-    }
-    setNotice("Task saved to your inbox.");
-    setIsCreateFormOpen(false);
-  }
+  }, [today]);
 
   async function handleUpdate(task: Task, input: TaskInput) {
     const updated = await taskService.update(task.id, input);
-    if (updated.status === "INBOX") {
-      setTasks((currentTasks) =>
-        currentTasks.map((currentTask) => (currentTask.id === updated.id ? updated : currentTask)),
-      );
-    } else {
-      setTasks((currentTasks) => currentTasks.filter(({ id }) => id !== updated.id));
-    }
-    setNotice("Task changes saved.");
+    setTasks((currentTasks) =>
+      currentTasks.map((current) => (current.id === updated.id ? updated : current)),
+    );
   }
 
   async function handleComplete(task: Task) {
     setPendingTaskId(task.id);
     setError(null);
     try {
-      await taskService.complete(task.id);
-      setTasks((currentTasks) => currentTasks.filter(({ id }) => id !== task.id));
-      setNotice(null);
+      const completed = await taskService.complete(task.id);
+      setTasks((currentTasks) =>
+        currentTasks.map((current) => (current.id === task.id ? completed : current)),
+      );
       setUndoAction({ id: task.id, kind: "complete", message: `Completed “${task.title}”.` });
     } catch (completeError) {
       setError(`Unable to complete “${task.title}”. ${messageFromError(completeError)}`);
@@ -101,7 +109,6 @@ export function InboxPage() {
     try {
       await taskService.archive(task.id);
       setTasks((currentTasks) => currentTasks.filter(({ id }) => id !== task.id));
-      setNotice(null);
       setUndoAction({ id: task.id, kind: "archive", message: `Archived “${task.title}”.` });
     } catch (archiveError) {
       setError(`Unable to archive “${task.title}”. ${messageFromError(archiveError)}`);
@@ -120,11 +127,11 @@ export function InboxPage() {
         undoAction.kind === "archive"
           ? await taskService.restore(undoAction.id)
           : await taskService.undoCompletion(undoAction.id);
-      if (restored.status === "INBOX") {
-        setTasks((currentTasks) => [restored, ...currentTasks]);
-      }
+      setTasks((currentTasks) => [
+        restored,
+        ...currentTasks.filter(({ id }) => id !== restored.id),
+      ]);
       setUndoAction(null);
-      setNotice("Action undone.");
     } catch (undoError) {
       setError(`Unable to undo this action. ${messageFromError(undoError)}`);
     } finally {
@@ -132,36 +139,25 @@ export function InboxPage() {
     }
   }
 
+  const sections = groupTasks(tasks, today);
+  const hasTasks = sections.some(({ tasks: sectionTasks }) => sectionTasks.length > 0);
+
   return (
     <section className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Inbox</p>
-          <h2>Unsorted work</h2>
+          <p className="eyebrow">{format(new Date(), "EEEE, MMMM d")}</p>
+          <h2>Today</h2>
         </div>
-        <button
-          className="button primary"
-          type="button"
-          onClick={() => {
-            setIsCreateFormOpen((isOpen) => !isOpen);
-            setError(null);
-            setNotice(null);
-          }}
-        >
-          <Plus size={16} aria-hidden="true" />
-          New task
-        </button>
       </header>
 
       {error && (
         <div className="feedback error-feedback" role="alert">
           <span>{error}</span>
-          {!isCreateFormOpen && (
-            <button className="button" type="button" onClick={() => void loadTasks()}>
-              <RotateCw size={15} aria-hidden="true" />
-              Retry
-            </button>
-          )}
+          <button className="button" type="button" onClick={() => void loadTasks()}>
+            <RotateCw size={15} aria-hidden="true" />
+            Retry
+          </button>
         </div>
       )}
       {undoAction && (
@@ -178,47 +174,47 @@ export function InboxPage() {
           </button>
         </p>
       )}
-      {notice && !undoAction && (
-        <p className="feedback success-feedback" role="status">
-          {notice}
-        </p>
-      )}
-
-      {isCreateFormOpen && (
-        <TaskForm
-          submitLabel="Create task"
-          onSubmit={handleCreate}
-          onCancel={() => setIsCreateFormOpen(false)}
-        />
-      )}
 
       {isLoading ? (
         <div className="panel-card loading-state" role="status">
-          Loading inbox…
+          Loading today’s tasks…
         </div>
-      ) : tasks.length > 0 ? (
-        <ul className="task-list" aria-label="Inbox tasks">
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              isPending={pendingTaskId === task.id}
-              onSave={(input) => handleUpdate(task, input)}
-              onComplete={() => void handleComplete(task)}
-              onArchive={() => void handleArchive(task)}
-            />
+      ) : hasTasks ? (
+        <div className="today-sections">
+          {sections.map((section) => (
+            <section
+              className="today-section"
+              key={section.title}
+              aria-labelledby={`today-${section.title}`}
+            >
+              <header className="today-section-header">
+                <h3 id={`today-${section.title}`}>{section.title}</h3>
+                <span className="chip">{section.tasks.length}</span>
+              </header>
+              {section.tasks.length > 0 ? (
+                <ul className="task-list" aria-label={`${section.title} tasks`}>
+                  {section.tasks.map((task) => (
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      isPending={pendingTaskId === task.id}
+                      onSave={(input) => handleUpdate(task, input)}
+                      onComplete={() => void handleComplete(task)}
+                      onArchive={() => void handleArchive(task)}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p className="today-section-empty">Nothing here.</p>
+              )}
+            </section>
           ))}
-        </ul>
+        </div>
       ) : (
-        !error &&
-        !isCreateFormOpen && (
+        !error && (
           <div className="panel-card empty-state">
-            <h3>No tasks in your inbox</h3>
-            <p className="empty-text">Capture a task here, then decide where it belongs.</p>
-            <button className="button" type="button" onClick={() => setIsCreateFormOpen(true)}>
-              <Plus size={16} aria-hidden="true" />
-              Add your first task
-            </button>
+            <h3>No scheduled tasks</h3>
+            <p className="empty-text">Add due dates to tasks in Inbox and they’ll appear here.</p>
           </div>
         )
       )}
