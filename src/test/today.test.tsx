@@ -24,6 +24,7 @@ beforeEach(() => {
     const baseTask = {
       description: null,
       priority: "NONE" as const,
+      projectId: null,
       startAt: null,
       estimatedDuration: null,
       position: 0,

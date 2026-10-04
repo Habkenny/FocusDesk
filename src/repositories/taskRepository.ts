@@ -16,6 +16,16 @@ export const taskRepository = {
     return invoke<Task[]>("list_inbox_tasks");
   },
 
+  async listActive(): Promise<Task[]> {
+    requireDesktopRuntime();
+    return invoke<Task[]>("list_active_tasks");
+  },
+
+  async listArchived(): Promise<Task[]> {
+    requireDesktopRuntime();
+    return invoke<Task[]>("list_archived_tasks");
+  },
+
   async listToday(today: string): Promise<Task[]> {
     requireDesktopRuntime();
     return invoke<Task[]>("list_today_tasks", { today });
@@ -49,5 +59,10 @@ export const taskRepository = {
   async restore(id: string): Promise<Task> {
     requireDesktopRuntime();
     return invoke<Task>("restore_task", { id });
+  },
+
+  async permanentlyDeleteArchived(id: string): Promise<Task> {
+    requireDesktopRuntime();
+    return invoke<Task>("permanently_delete_archived_task", { id });
   },
 };

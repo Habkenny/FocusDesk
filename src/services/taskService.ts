@@ -19,6 +19,7 @@ const taskInputSchema = z.object({
       (date) => date === "" || (isValid(parseISO(date)) && /^\d{4}-\d{2}-\d{2}$/.test(date)),
       "Choose a valid due date.",
     ),
+  projectId: z.string().nullable(),
 });
 
 function validateInput(input: TaskInput): TaskInput {
@@ -26,6 +27,7 @@ function validateInput(input: TaskInput): TaskInput {
     ...input,
     description: input.description ?? "",
     dueAt: input.dueAt ?? "",
+    projectId: input.projectId ?? null,
   });
   if (!validation.success) {
     throw new Error(validation.error.issues[0]?.message ?? "Check the task details and try again.");
@@ -35,12 +37,21 @@ function validateInput(input: TaskInput): TaskInput {
     ...validation.data,
     description: validation.data.description.trim() || null,
     dueAt: validation.data.dueAt || null,
+    projectId: validation.data.projectId,
   };
 }
 
 export const taskService = {
   listInbox() {
     return taskRepository.listInbox();
+  },
+
+  listActive() {
+    return taskRepository.listActive();
+  },
+
+  listArchived() {
+    return taskRepository.listArchived();
   },
 
   listToday(today: string) {
@@ -69,5 +80,9 @@ export const taskService = {
 
   restore(id: string) {
     return taskRepository.restore(id);
+  },
+
+  permanentlyDeleteArchived(id: string) {
+    return taskRepository.permanentlyDeleteArchived(id);
   },
 };

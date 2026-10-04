@@ -9,6 +9,7 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  projectId: string | null;
   dueAt: string | null;
   startAt: string | null;
   estimatedDuration: number | null;
@@ -25,4 +26,5 @@ export interface TaskInput {
   status: EditableTaskStatus;
   priority: TaskPriority;
   dueAt: string | null;
+  projectId: string | null;
 }

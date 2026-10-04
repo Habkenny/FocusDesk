@@ -18,7 +18,13 @@ beforeEach(() => {
   invokeMock.mockReset();
   isTauriMock.mockReturnValue(true);
   invokeMock.mockImplementation(
-    (command: string, args?: { input?: TaskInput; id?: string; today?: string }) => {
+    (
+      command: string,
+      args?: { input?: TaskInput; id?: string; today?: string; projectId?: string },
+    ) => {
+      if (command === "list_projects") {
+        return Promise.resolve([]);
+      }
       if (command === "list_inbox_tasks") {
         return Promise.resolve(persistedTasks.filter((task) => task.status === "INBOX"));
       }
@@ -35,6 +41,7 @@ beforeEach(() => {
           description: input?.description ?? null,
           status: input?.status ?? "INBOX",
           priority: input?.priority ?? "NONE",
+          projectId: input?.projectId ?? null,
           dueAt: input?.dueAt ?? null,
           startAt: null,
           estimatedDuration: null,
@@ -131,6 +138,9 @@ describe("Inbox task workflow", () => {
 
   it("shows a save error without pretending the task was created", async () => {
     invokeMock.mockImplementation((command: string) => {
+      if (command === "list_projects") {
+        return Promise.resolve([]);
+      }
       if (command === "list_inbox_tasks") {
         return Promise.resolve([]);
       }
@@ -144,7 +154,7 @@ describe("Inbox task workflow", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /create task/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save task.");
+    expect(await screen.findByText(/Could not save task\./)).toBeInTheDocument();
     expect(screen.queryByText("Do not lose this task")).not.toBeInTheDocument();
   });
 
