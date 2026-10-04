@@ -6,20 +6,13 @@ export function ProjectsPage() {
           <p className="eyebrow">Projects</p>
           <h2>Active workstreams</h2>
         </div>
-        <button className="button" type="button">
-          New project
-        </button>
       </header>
 
-      <div className="grid-cards">
-        <article className="panel-card">
-          <h3>Articulation Coach</h3>
-          <p>Product planning and feature execution.</p>
-        </article>
-        <article className="panel-card">
-          <h3>Portfolio</h3>
-          <p>Showcase, writing, and proofing.</p>
-        </article>
+      <div className="panel-card empty-state">
+        <h3>Projects are not set up yet</h3>
+        <p className="empty-text">
+          Project creation and task grouping will be added after the inbox workflow is complete.
+        </p>
       </div>
     </section>
   );

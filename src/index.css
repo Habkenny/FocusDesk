@@ -112,7 +112,9 @@ select {
   border-radius: 0.8rem;
   color: var(--muted);
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .nav-item:hover,
@@ -230,12 +232,27 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 0.65rem 1rem;
   background: var(--panel-strong);
   color: var(--text);
   cursor: pointer;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button:focus-visible,
+.select:focus-visible,
+.task-form input:focus-visible,
+.task-complete:focus-visible,
+.nav-item:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .button.primary {
@@ -247,6 +264,147 @@ select {
 .empty-text {
   margin: 0;
   color: var(--muted);
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+}
+
+.error-feedback {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+html[data-theme="dark"] .error-feedback {
+  color: #fecaca;
+  background: #451a1a;
+  border-color: #7f1d1d;
+}
+
+.success-feedback {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+html[data-theme="dark"] .success-feedback {
+  color: #bbf7d0;
+  background: #142e21;
+  border-color: #166534;
+}
+
+.task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.task-form-row {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.task-form input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  background: var(--panel-strong);
+  color: var(--text);
+}
+
+.helper-text {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.empty-state h3,
+.dashboard-intro h3 {
+  margin: 0;
+}
+
+.dashboard-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.dashboard-intro > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--panel);
+}
+
+.task-complete {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.task-complete:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.task-complete:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.task-title {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.task-priority {
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .grid-cards {
@@ -285,5 +443,15 @@ select {
 
   .content-panel {
     padding: 1rem;
+  }
+
+  .dashboard-intro,
+  .task-form-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-priority {
+    display: none;
   }
 }
