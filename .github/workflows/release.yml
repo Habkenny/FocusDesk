@@ -1,0 +1,110 @@
+
+name: Windows release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Verify release tag and manifest versions
+        shell: pwsh
+        run: |
+          $tagVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargoManifest = Get-Content src-tauri/Cargo.toml -Raw
+          $cargoPackage = [regex]::Match($cargoManifest, '(?ms)^\[package\]\s*(.*?)(?=^\[|\z)')
+          $cargoVersion = [regex]::Match($cargoPackage.Groups[1].Value, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
+
+          if ($tagVersion -ne $packageVersion -or $tagVersion -ne $tauriVersion) {
+            throw "Tag version does not match package.json and tauri.conf.json."
+          }
+
+          if (-not $cargoVersion -or $tagVersion -ne $cargoVersion) {
+            throw "Cargo.toml package version does not match the release tag."
+          }
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend tests
+        run: pnpm test
+
+      - name: Type-check frontend
+        run: pnpm typecheck
+
+      - name: Lint frontend
+        run: pnpm lint
+
+      - name: Check Rust formatting
+        shell: pwsh
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build unsigned Windows NSIS installer
+        run: pnpm exec tauri build --bundles nsis
+
+      - name: Prepare release notes and checksum
+        shell: pwsh
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $installer = Join-Path $PWD "src-tauri/target/release/bundle/nsis/FocusDesk_${version}_x64-setup.exe"
+
+          if (-not (Test-Path -LiteralPath $installer)) {
+            throw "Expected NSIS installer was not created: $installer"
+          }
+
+          $checksum = Get-FileHash -LiteralPath $installer -Algorithm SHA256
+          Set-Content -LiteralPath SHA256SUMS.txt -Value "$($checksum.Hash)  $(Split-Path $installer -Leaf)" -Encoding ascii
+
+          @"
+          FocusDesk $version for Windows (x64).
+
+          **Unsigned portfolio build:** This installer is not code-signed. Windows may display an unknown-publisher or Microsoft Defender SmartScreen warning. Only install software from a source you trust.
+
+          **Verify the download:** Compare the installer's SHA-256 digest with SHA256SUMS.txt.
+
+          Before upgrading, back up your local database:
+          %APPDATA%\com.habke.focusdesk\focusdesk.db
+          "@ | Set-Content -LiteralPath release-notes.md -Encoding utf8
+
+      - name: Publish unsigned installer and checksum
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FocusDesk ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            src-tauri/target/release/bundle/nsis/FocusDesk_*_x64-setup.exe
+            SHA256SUMS.txt

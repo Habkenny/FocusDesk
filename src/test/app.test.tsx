@@ -12,8 +12,8 @@ describe("FocusDesk app shell", () => {
       </BrowserRouter>,
     );
 
-    expect(screen.getByText("FocusDesk")).toBeInTheDocument();
-    expect(screen.getByText(/Here’s what matters today\./i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "FocusDesk" })).toBeInTheDocument();
+    expect(screen.getByText(/What matters today\?/i)).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: /main navigation/i })).toBeInTheDocument();
   });
 });

@@ -1,51 +1,28 @@
+import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+
 export function DashboardPage() {
   return (
     <section className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Good morning.</p>
-          <h2>Here’s what matters today.</h2>
+          <p className="eyebrow">FocusDesk</p>
+          <h2>What matters today?</h2>
         </div>
-        <span className="chip">October 4, 2026</span>
       </header>
 
-      <div className="stats-grid">
-        <article className="stat-card">
-          <span>Tasks completed</span>
-          <strong>8</strong>
-        </article>
-        <article className="stat-card">
-          <span>Focus time</span>
-          <strong>2h 45m</strong>
-        </article>
-        <article className="stat-card">
-          <span>Overdue</span>
-          <strong>1</strong>
-        </article>
-        <article className="stat-card">
-          <span>Current streak</span>
-          <strong>5 days</strong>
-        </article>
-      </div>
-
-      <div className="stack-grid">
-        <article className="panel-card">
-          <h3>Priority tasks</h3>
-          <ul className="list">
-            <li>Ship the portfolio summary</li>
-            <li>Review FocusDesk sprint plan</li>
-            <li>Finalize Q4 roadmap notes</li>
-          </ul>
-        </article>
-
-        <article className="panel-card">
-          <h3>Today’s schedule</h3>
-          <ul className="list">
-            <li>09:00 — Daily planning</li>
-            <li>11:30 — Design review</li>
-            <li>15:00 — Focus sprint</li>
-          </ul>
-        </article>
+      <div className="panel-card dashboard-intro">
+        <div>
+          <h3>Your workspace is ready.</h3>
+          <p className="empty-text">
+            Add work to your inbox to start planning. Dashboard summaries will appear when they can
+            reflect your saved data.
+          </p>
+        </div>
+        <Link className="button primary" to="/inbox">
+          Go to Inbox
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </div>
     </section>
   );
