@@ -614,6 +614,74 @@ mod tests {
     }
 
     #[test]
+    fn migration_upgrades_version_three_project_data_without_loss() {
+        let path = temporary_database_path();
+        {
+            let connection =
+                Connection::open(&path).expect("version three database should be created");
+            connection
+                .execute_batch(
+                    r#"
+                    CREATE TABLE projects (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        status TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    );
+                    CREATE TABLE tasks (
+                        id TEXT PRIMARY KEY,
+                        status TEXT NOT NULL,
+                        project_id TEXT,
+                        due_at TEXT,
+                        archived_at TEXT
+                    );
+                    INSERT INTO projects (id, name, status, created_at, updated_at)
+                    VALUES ('release-project', 'Release planning', 'ACTIVE', 'created', 'updated');
+                    INSERT INTO tasks (id, status, project_id)
+                    VALUES ('release-task', 'TODO', 'release-project');
+                    PRAGMA user_version = 3;
+                    "#,
+                )
+                .expect("version three project data should be created");
+        }
+
+        initialize_database(&path).expect("version three database should upgrade");
+
+        let connection = open_connection(&path).expect("upgraded database should open");
+        let preserved: (String, String) = connection
+            .query_row(
+                "SELECT projects.name, tasks.project_id FROM projects JOIN tasks ON tasks.project_id = projects.id WHERE tasks.id = 'release-task'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("existing project task assignment should remain");
+        let version: i64 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("schema version should be readable");
+        let project_index: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_tasks_project'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("project index should exist");
+
+        assert_eq!(
+            preserved,
+            (
+                "Release planning".to_string(),
+                "release-project".to_string()
+            )
+        );
+        assert_eq!(version, 4);
+        assert_eq!(project_index, 1);
+        drop(connection);
+        std::fs::remove_file(path).expect("test database should be cleaned up");
+    }
+
+    #[test]
     fn task_crud_archive_and_undo_persist() {
         let path = temporary_database_path();
         initialize_database(&path).expect("migration should succeed");
